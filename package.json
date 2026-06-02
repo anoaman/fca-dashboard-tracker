@@ -1,0 +1,9 @@
+{
+  "name": "fca-dashboard",
+  "version": "1.0.0",
+  "description": "FCA Graduation Evaluation Dashboard —<｜image｜> powered by Stockbit API",
+  "private": true,
+  "dependencies": {
+    "axios": "^1.7.2"
+  }
+}
