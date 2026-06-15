@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FCA Dashboard — IDX Graduation Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #0A0A0A;
+      color: #E2E8F0;
+      min-height: 100vh;
+      position: relative;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+      opacity: 0.4; pointer-events: none; z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed; top: -100px; right: -100px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(34, 197, 94, 0.2) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+    .gradient-bottom {
+      position: fixed; bottom: -100px; left: -100px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(22, 163, 74, 0.18) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+    .app-container { max-width: 1280px; margin: 0 auto; padding: 24px 20px; position: relative; z-index: 1; }
+
+    /* Header */
+    .app-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 0 24px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px;
+    }
+    .app-brand { display: flex; align-items: center; gap: 14px; }
+    .app-title { font-size: 22px; font-weight: 800; color: #F8FAFC; letter-spacing: -0.5px; }
+    .app-subtitle { font-size: 12px; color: #64748B; margin-top: 1px; }
+    .app-period { font-size: 11px; color: #475569; margin-top: 4px; }
+
+    /* Period banner */
+    .period-banner {
+      background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2);
+      border-radius: 8px; padding: 10px 16px; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; color: #22C55E; font-weight: 600;
+    }
+    .period-banner .badge {
+      background: #22C55E; color: #0A0A0A; font-size: 10px; font-weight: 800;
+      padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    /* Search */
+    .search-section { display: flex; gap: 10px; margin-bottom: 28px; align-items: center; flex-wrap: wrap; }
+    .search-wrapper { position: relative; flex: 1; min-width: 200px; }
+    .search-wrapper input {
+      width: 100%; padding: 12px 16px 12px 42px;
+      background: rgba(255,255,255,0.04); backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
+      color: #E2E8F0; font-size: 16px; font-weight: 500; font-family: 'JetBrains Mono', monospace;
+      outline: none; transition: border-color 0.2s;
+    }
+    .search-wrapper input:focus { border-color: #22C55E; }
+    .search-wrapper input::placeholder { color: #475569; font-weight: 400; }
+    .search-icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      color: #475569; font-size: 18px; pointer-events: none;
+    }
+    .search-btn {
+      padding: 12px 28px; background: #334155; border: none; border-radius: 10px;
+      color: #F8FAFC; font-weight: 700; font-size: 14px; cursor: pointer;
+      transition: background 0.2s; white-space: nowrap;
+    }
+    .search-btn:hover { background: #475569; }
+    .search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Section titles */
+    .section-title {
+      font-size: 13px; font-weight: 700; color: #64748B; letter-spacing: 1.2px;
+      text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .section-title .count {
+      background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 4px;
+      font-size: 11px; color: #94A3B8;
+    }
+
+    /* Section titles */
+    .fca-section { margin-bottom: 32px; }
+    .fca-table {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+    }
+    .fca-table th {
+      text-align: left; color: #64748B; font-weight: 600; font-size: 10px;
+      text-transform: uppercase; letter-spacing: 1px;
+      padding: 10px 8px; border-bottom: 1px solid #1E293B;
+      cursor: pointer; user-select: none; white-space: nowrap;
+    }
+    .fca-table th:hover { color: #94A3B8; }
+    .fca-table th.sorted { color: #22C55E; }
+    .fca-table td {
+      padding: 10px 8px; border-bottom: 1px solid #1E293B;
+      font-variant-numeric: tabular-nums;
+    }
+    .fca-table tr { cursor: pointer; transition: background 0.1s; }
+    .fca-table tr:hover { background: rgba(34,197,94,0.04); }
+    .fca-table .ticker-cell { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #F8FAFC; }
+    .fca-table .name-cell { color: #94A3B8; font-size: 12px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fca-table .price-cell { font-family: 'JetBrains Mono', monospace; font-weight: 600; text-align: right; }
+    .fca-table .change-pos { color: #22C55E; }
+    .fca-table .change-neg { color: #EF4444; }
+    .fca-table .change-zero { color: #64748B; }
+    .fca-loading {
+      text-align: center; padding: 40px; color: #64748B; font-size: 14px;
+    }
+    .fca-loading .spinner {
+      display: inline-block; width: 24px; height: 24px;
+      border: 2px solid rgba(34,197,94,0.2); border-top-color: #22C55E;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      margin-bottom: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Loading overlay (for search evaluation) */
+    .loading-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(10,10,10,0.85); backdrop-filter: blur(10px);
+      display: none; overflow: hidden;
+    }
+    .loading-overlay.active { display: block; }
+    .loading-overlay .loading-anim-wrap {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .loading-overlay .loading-anim-wrap::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at center, rgba(34, 197, 94, 0.12) 0%, transparent 70%);
+      z-index: 2; pointer-events: none;
+    }
+    .think-container { position: relative; width: 300px; height: 300px; z-index: 2; }
+    .think-ring {
+      position: absolute; border-radius: 50%;
+      border: 2px solid rgba(34, 197, 94, 0.15);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      animation: thinkPulse 2.4s ease-in-out infinite;
+    }
+    .think-ring:nth-child(1) { width: 60px; height: 60px; animation-delay: 0s; border-color: rgba(34, 197, 94, 0.4); }
+    .think-ring:nth-child(2) { width: 120px; height: 120px; animation-delay: 0.3s; border-color: rgba(34, 197, 94, 0.25); }
+    .think-ring:nth-child(3) { width: 180px; height: 180px; animation-delay: 0.6s; border-color: rgba(34, 197, 94, 0.15); }
+    .think-ring:nth-child(4) { width: 240px; height: 240px; animation-delay: 0.9s; border-color: rgba(34, 197, 94, 0.08); }
+    .think-ring:nth-child(5) { width: 300px; height: 300px; animation-delay: 1.2s; border-color: rgba(34, 197, 94, 0.05); }
+    @keyframes thinkPulse {
+      0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
+      20% { opacity: 1; }
+      50% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+      100% { transform: translate(-50%, -50%) scale(1.1); opacity: 0; }
+    }
+    .think-dot {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 12px; height: 12px; border-radius: 50%;
+      background: #22C55E;
+      box-shadow: 0 0 30px rgba(34, 197, 94, 0.5), 0 0 60px rgba(34, 197, 94, 0.2);
+      animation: dotPulse 2.4s ease-in-out infinite;
+    }
+    @keyframes dotPulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      50% { transform: translate(-50%, -50%) scale(0.7); opacity: 0.6; }
+    }
+    .think-orbit {
+      position: absolute; top: 50%; left: 50%;
+      width: 210px; height: 210px;
+      transform: translate(-50%, -50%);
+      animation: orbitSpin 3s linear infinite;
+    }
+    .think-orbit-dot {
+      position: absolute; width: 6px; height: 6px; border-radius: 50%;
+      background: #22C55E; opacity: 0.6;
+    }
+    .think-orbit-dot:nth-child(1) { top: 0; left: 50%; transform: translateX(-50%); }
+    .think-orbit-dot:nth-child(2) { top: 50%; right: 0; transform: translateY(-50%); }
+    .think-orbit-dot:nth-child(3) { bottom: 0; left: 50%; transform: translateX(-50%); }
+    .think-orbit-dot:nth-child(4) { top: 50%; left: 0; transform: translateY(-50%); }
+    @keyframes orbitSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+    .loading-overlay .loading-text-wrap {
+      position: absolute; bottom: 60px; left: 0; right: 0;
+      text-align: center; z-index: 3;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
+    .loading-text { color: #F8FAFC; font-size: 20px; font-weight: 800; letter-spacing: 0.5px; text-shadow: 0 2px 8px rgba(0,0,0,0.6); }
+    .loading-sub { color: #94A3B8; font-size: 14px; text-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+    .loading-overlay::before {
+      content: '';
+      position: absolute; inset: 0; z-index: 1;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+      opacity: 0.4; pointer-events: none;
+    }
+
+    /* Error / Not-FCA */
+    .message-box {
+      background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
+      backdrop-filter: blur(20px); border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 20px;
+    }
+    .message-box .msg-icon { font-size: 32px; margin-bottom: 10px; }
+    .message-box .msg-title { color: #EF4444; font-weight: 800; font-size: 18px; margin-bottom: 6px; }
+    .message-box .msg-detail { color: #94A3B8; font-size: 14px; line-height: 1.5; }
+
+    /* Warning banner */
+    .criteria-warning {
+      background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.25);
+      backdrop-filter: blur(20px); border-radius: 10px; padding: 14px 18px;
+      margin-bottom: 20px; font-size: 13px; color: #F97316; line-height: 1.5;
+    }
+
+    .dashboard { display: none; }
+
+    /* Header card */
+    .dash-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .dash-company { display: flex; flex-direction: column; gap: 2px; }
+    .dash-ticker { font-size: 36px; font-weight: 800; color: #F8FAFC; letter-spacing: -0.02em; line-height: 1.1; }
+    .dash-name { font-size: 14px; font-weight: 500; color: #94A3B8; margin-top: 1px; }
+    .dash-period { font-size: 13px; color: #64748B; margin-top: 2px; }
+
+    /* Summary grid */
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 24px; }
+    .summary-card {
+      background: rgba(255,255,255,0.04); backdrop-filter: blur(20px);
+      border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(255,255,255,0.08);
+    }
+    .summary-label { font-size: 11px; font-weight: 700; color: #64748B; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 4px; }
+    .summary-value { font-size: 30px; font-weight: 800; font-family: 'JetBrains Mono', monospace; line-height: 1.1; }
+    .summary-value.white { color: #F8FAFC; }
+    .summary-value.orange { color: #F97316; }
+    .summary-value.red { color: #EF4444; }
+    .summary-value.green { color: #22C55E; }
+    .summary-sub { font-size: 11px; color: #64748B; margin-top: 2px; }
+
+    /* Early phase notice */
+    .early-notice {
+      background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.2);
+      border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .early-notice .icon { font-size: 24px; flex-shrink: 0; }
+    .early-notice .title { font-weight: 700; color: #F97316; font-size: 15px; margin-bottom: 4px; }
+    .early-notice .detail { color: #94A3B8; font-size: 13px; line-height: 1.5; }
+
+    /* Progress */
+    .progress-section { margin-bottom: 24px; }
+    .progress-label { font-size: 11px; font-weight: 700; color: #64748B; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 6px; }
+    .progress-bar-bg { height: 16px; background: #1E293B; border-radius: 8px; overflow: hidden; margin-bottom: 6px; position: relative; }
+    .progress-bar-fill {
+      height: 100%; background: linear-gradient(90deg, #22C55E, #16A34A); border-radius: 8px;
+      display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; min-width: 0;
+    }
+    .progress-pct { font-size: 10px; font-weight: 700; color: #F8FAFC; font-family: 'JetBrains Mono', monospace; text-shadow: 0 1px 2px rgba(0,0,0,0.5); line-height: 1; opacity: 0; transition: opacity 0.3s; }
+    .progress-pct.show { opacity: 1; }
+    .progress-caption { display: flex; justify-content: space-between; font-size: 12px; color: #64748B; font-family: 'JetBrains Mono', monospace; }
+    .progress-remaining { color: #EF4444; font-weight: 700; }
+
+    /* Main grid */
+    .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+    .grid-section-title { font-size: 11px; font-weight: 700; color: #64748B; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 8px; }
+
+    /* Month table */
+    .month-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 12px; }
+    .month-table th { text-align: left; color: #64748B; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; padding: 10px 8px 10px 0; border-bottom: 1px solid #1E293B; }
+    .month-table th:not(:first-child) { text-align: right; }
+    .month-table td { padding: 10px 8px 10px 0; border-bottom: 1px solid #1E293B; font-variant-numeric: tabular-nums; font-size: 14px; }
+    .month-table td:not(:first-child) { text-align: right; }
+    .month-table .delta-neg { color: #EF4444; font-weight: 600; }
+    .month-table .delta-pos { color: #22C55E; font-weight: 600; }
+    .month-table .total-row td { font-weight: 700; border-top: 2px solid #334155; padding-top: 12px; font-size: 15px; }
+
+    /* Verdict card */
+    .verdict-card {
+      border-radius: 12px; padding: 16px 20px; margin-bottom: 20px;
+      border: 1px solid;
+    }
+    .verdict-card.pass { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.3); }
+    .verdict-card.warn { background: rgba(249,115,22,0.08); border-color: rgba(249,115,22,0.3); }
+    .verdict-card.fail { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.3); }
+    .verdict-icon { font-size: 24px; margin-bottom: 6px; }
+    .verdict-headline { font-weight: 700; font-size: 16px; margin-bottom: 8px; }
+    .verdict-card.pass .verdict-headline { color: #22C55E; }
+    .verdict-card.warn .verdict-headline { color: #F97316; }
+    .verdict-card.fail .verdict-headline { color: #EF4444; }
+    .verdict-context { font-size: 12px; color: #94A3B8; line-height: 1.6; }
+
+    /* Scenario cards */
+    .scenario-card {
+      background: rgba(255,255,255,0.04); backdrop-filter: blur(20px);
+      border-radius: 10px; padding: 14px 16px; margin-bottom: 8px;
+      display: flex; justify-content: space-between; align-items: center;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .scenario-card:last-child { margin-bottom: 0; }
+    .scenario-card.pass { border-color: #22C55E; background: rgba(34,197,94,0.08); }
+    .scenario-info { flex: 1; }
+    .scenario-label { font-weight: 700; font-size: 14px; color: #F8FAFC; margin-bottom: 2px; }
+    .scenario-desc { font-size: 11px; color: #64748B; }
+    .scenario-confidence { font-size: 10px; color: #475569; margin-top: 2px; font-weight: 600; }
+    .scenario-result { text-align: right; }
+    .scenario-points { font-size: 16px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .scenario-pass { color: #22C55E; }
+    .scenario-fail { color: #EF4444; }
+    .scenario-deficit { font-size: 10px; color: #64748B; margin-top: 1px; }
+
+    /* Chart */
+    .chart-section { border-top: 1px solid rgba(255,255,255,0.06); padding-top: 14px; }
+    .chart-wrap { position: relative; height: 150px; margin: 8px 0 0; }
+    .chart-grid { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; }
+    .chart-grid-line { border-top: 1px dashed rgba(148,163,184,0.35); height: 0; position: relative; }
+    .chart-grid-line::after { content: attr(data-label); position: absolute; left: -32px; top: -7px; font-size: 9px; color: #475569; font-family: 'JetBrains Mono', monospace; }
+    .chart-container { position: relative; height: 150px; display: flex; align-items: flex-end; gap: 10px; padding: 0 4px; }
+    .chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; }
+    .chart-bar { width: 100%; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, #22C55E, #15803D); min-height: 6px; transition: height 0.5s ease; }
+    .chart-bar-label { font-size: 11px; color: #64748B; font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+    .chart-bar-value { font-size: 12px; color: #94A3B8; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .chart-avg-label { font-size: 12px; color: #64748B; text-align: center; margin-top: 6px; }
+
+    /* Close button for evaluation */
+    .dash-close {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 6px 14px; color: #94A3B8; font-size: 12px;
+      cursor: pointer; transition: all 0.15s; font-weight: 600;
+    }
+    .dash-close:hover { background: rgba(255,255,255,0.1); color: #F8FAFC; }
+
+    .empty-state { text-align: center; padding: 40px; color: #64748B; }
+    .empty-state .icon { font-size: 40px; margin-bottom: 10px; }
+    .empty-state .title { font-weight: 700; font-size: 16px; color: #94A3B8; margin-bottom: 4px; }
+    .empty-state .sub { font-size: 13px; }
+
+    /* Glossary tooltip */
+    .glossary-trigger {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: rgba(255,255,255,0.08); color: #64748B;
+      font-size: 10px; font-weight: 700; cursor: pointer;
+      margin-left: 4px; vertical-align: middle; position: relative;
+      transition: background 0.15s, color 0.15s;
+      user-select: none; text-transform: none;
+    }
+    .glossary-trigger:hover { background: rgba(34,197,94,0.2); color: #22C55E; }
+    .glossary-trigger.active { background: rgba(34,197,94,0.25); color: #22C55E; }
+    .glossary-popover {
+      display: none; position: absolute; z-index: 50;
+      bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+      background: #1E293B; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px; padding: 10px 14px;
+      min-width: 220px; max-width: 300px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+    .glossary-popover.visible { display: block; }
+    .glossary-popover::after {
+      content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+      border: 6px solid transparent; border-top-color: #1E293B;
+    }
+    .glossary-popover .gp-title { font-size: 12px; font-weight: 700; color: #F8FAFC; margin-bottom: 4px; text-transform: none; }
+    .glossary-popover .gp-def { font-size: 12px; color: #94A3B8; line-height: 1.5; text-transform: none; }
+
+    /* Glossary modal */
+    .glossary-modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .glossary-modal-overlay.active { display: flex; }
+    .glossary-modal {
+      background: #111827; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px; padding: 32px;
+      max-width: 640px; width: 100%; max-height: 85vh; overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    }
+    .glossary-modal::-webkit-scrollbar { width: 6px; }
+    .glossary-modal::-webkit-scrollbar-track { background: transparent; }
+    .glossary-modal::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    .gm-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .gm-title { font-size: 22px; font-weight: 800; color: #F8FAFC; }
+    .gm-close {
+      width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1); color: #94A3B8;
+      font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .gm-close:hover { background: rgba(255,255,255,0.12); color: #F8FAFC; }
+    .gm-intro { font-size: 14px; color: #94A3B8; line-height: 1.6; margin-bottom: 24px; }
+    .gm-term { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .gm-term:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .gm-term-name { font-size: 16px; font-weight: 700; color: #22C55E; margin-bottom: 4px; }
+    .gm-term-def { font-size: 14px; color: #CBD5E1; line-height: 1.6; margin-bottom: 8px; }
+    .gm-term-formula {
+      background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.15);
+      border-radius: 6px; padding: 8px 12px;
+      font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #22C55E;
+    }
+    .gm-term-example { font-size: 12px; color: #64748B; margin-top: 6px; font-style: italic; }
+
+    /* Header glossary button */
+    .header-glossary-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 8px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      color: #94A3B8; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .header-glossary-btn:hover { background: rgba(34,197,94,0.15); color: #22C55E; border-color: rgba(34,197,94,0.3); }
+    .header-glossary-btn svg { width: 16px; height: 16px; }
+  </style>
+</head>
+<body>
+  <div class="gradient-bottom"></div>
+  <div class="app-container">
+
+    <!-- Header -->
+    <header class="app-header">
+      <div class="app-brand">
+        <div>
+          <div class="app-title">FCA Dashboard</div>
+          <div class="app-subtitle">IDX Graduation Tracker</div>
+          <div class="app-period" id="periodDisplay">Period: May 29 → Aug 28, 2026</div>
+        </div>
+      </div>
+      <button class="header-glossary-btn" id="headerGlossaryBtn" title="Glossary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Glossary
+      </button>
+    </header>
+
+    <!-- Period banner -->
+    <div class="period-banner">
+      <span class="badge">NEW</span>
+      New evaluation period started May 29, 2026. Search any FCA stock below.
+    </div>
+
+    <!-- Search -->
+    <div class="search-section">
+      <div class="search-wrapper">
+        <span class="search-icon">&#x1F50D;</span>
+        <input type="text" id="searchInput" placeholder="Search ticker (e.g. KBAG)" autocomplete="off" spellcheck="false">
+      </div>
+      <button class="search-btn" id="searchBtn" onclick="doSearch()">Evaluate</button>
+    </div>
+
+    <!-- Section C: Deep Analysis (appears after search) -->
+    <div id="resultArea"></div>
+
+    <!-- Section B: FCA 1 Overview -->
+    <div class="fca-section" id="fcaSection">
+      <div class="section-title">&#x1F4CA; FCA 1 Stocks <span class="count" id="fcaCount"></span></div>
+      <div class="fca-loading" id="fcaLoading">
+        <div class="spinner"></div>
+        <div>Loading FCA 1 stocks...</div>
+      </div>
+      <table class="fca-table" id="fcaTable" style="display:none">
+        <thead>
+          <tr>
+            <th onclick="sortTable('ticker')" data-key="ticker">Ticker</th>
+            <th onclick="sortTable('name')" data-key="name">Name</th>
+            <th onclick="sortTable('price')" data-key="price" style="text-align:right">Price</th>
+            <th onclick="sortTable('changePct')" data-key="changePct" style="text-align:right">Change</th>
+          </tr>
+        </thead>
+        <tbody id="fcaBody"></tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- Glossary Modal -->
+  <div class="glossary-modal-overlay" id="glossaryModal">
+    <div class="glossary-modal">
+      <div class="gm-header">
+        <div class="gm-title">Glossary</div>
+        <button class="gm-close" id="glossaryClose">✕</button>
+      </div>
+      <div class="gm-intro">Every metric on this dashboard, explained. Formulas show how each number is calculated.</div>
+
+      <div class="gm-term">
+        <div class="gm-term-name">Full Target</div>
+        <div class="gm-term-def">The cumulative price total a stock must reach across the entire FCA review period to graduate. Set by OJK regulation — it's the benchmark, not a prediction.</div>
+        <div class="gm-term-formula">Full Target = Total Trading Days × 51</div>
+        <div class="gm-term-example">Example: 62 trading days × 51 = 3,162 points needed to graduate</div>
+      </div>
+
+      <div class="gm-term">
+        <div class="gm-term-name">Current Total</div>
+        <div class="gm-term-def">The running sum of all daily closing prices since the FCA period started. This is where the stock actually stands right now — the accumulated score.</div>
+        <div class="gm-term-formula">Current Total = Σ (Close Price for each elapsed trading day)</div>
+        <div class="gm-term-example">Example: Day 1 close 80 + Day 2 close 82 + Day 3 close 79 = 241</div>
+      </div>
+
+      <div class="gm-term">
+        <div class="gm-term-name">Shortfall</div>
+        <div class="gm-term-def">How far the stock still needs to climb. The gap between where it needs to be (Full Target) and where it actually is (Current Total). A negative number means it's already past the target.</div>
+        <div class="gm-term-formula">Shortfall = Full Target − Current Total</div>
+        <div class="gm-term-example">Example: 3,162 target − 500 current = 2,662 shortfall</div>
+      </div>
+
+      <div class="gm-term">
+        <div class="gm-term-name">Avg Needed</div>
+        <div class="gm-term-def">The average closing price the stock needs for each remaining session to hit the Full Target. Think of it as the required run rate — what the stock must average per day from here.</div>
+        <div class="gm-term-formula">Avg Needed = Shortfall ÷ Remaining Sessions</div>
+        <div class="gm-term-example">Example: 2,662 shortfall ÷ 61 sessions = 43.6 per day needed</div>
+      </div>
+
+      <div class="gm-term">
+        <div class="gm-term-name">Remaining Sessions</div>
+        <div class="gm-term-def">The number of trading days left in the FCA review period, excluding weekends and IDX holidays. Each remaining session is a chance to close the gap.</div>
+        <div class="gm-term-formula">Remaining Sessions = Total Trading Days − Elapsed Trading Days</div>
+        <div class="gm-term-example">Example: 62 total − 1 elapsed = 61 sessions remaining</div>
+      </div>
+
+      <div class="gm-term">
+        <div class="gm-term-name">Daily Closes</div>
+        <div class="gm-term-def">The end-of-day closing price for each trading day in the review period. These are the raw data points — every number on this dashboard is built from daily closes.</div>
+        <div class="gm-term-formula">Daily Close = Last traded price of the day on IDX</div>
+        <div class="gm-term-example">Example: KBAG closed at Rp50 on May 29 → that's one daily close added to the cumulative total</div>
+      </div>
+
+      <div class="gm-term">
+        <div class="gm-term-name">Monthly Breakdown</div>
+        <div class="gm-term-def">A month-by-month view of how the cumulative total is building up. Shows points earned per month vs. the monthly target, and whether each month was above or below pace. The Δ column shows surplus (+) or deficit (−) for that month.</div>
+        <div class="gm-term-formula">Monthly Target = Days in Month × 51 | Δ = Monthly Points − Monthly Target</div>
+        <div class="gm-term-example">Example: May had 1 trading day → target 51. Stock earned 50 → Δ = −1</div>
+      </div>
+
+      <div class="gm-term">
+        <div class="gm-term-name">Progress to Target</div>
+        <div class="gm-term-def">How far along the stock is toward the Full Target, shown as a percentage. 100% means it's already graduated. Below 50% means there's more ground to cover than ground covered.</div>
+        <div class="gm-term-formula">Progress = (Current Total ÷ Full Target) × 100%</div>
+        <div class="gm-term-example">Example: 500 current ÷ 3,162 target = 15.8%</div>
+      </div>
+
+      <div class="gm-term">
+        <div class="gm-term-name">Scenarios</div>
+        <div class="gm-term-def">What-if projections showing whether the stock can graduate under different conditions. Each scenario assumes a specific price trajectory for the remaining sessions and calculates the resulting total.</div>
+        <div class="gm-term-formula">Scenario Total = Current Total + (Assumed Price × Remaining Sessions)</div>
+        <div class="gm-term-example">Example: Status quo assumes current price for all remaining sessions; rally assumes capped ARA run</div>
+      </div>
+
+      <div class="gm-term">
+        <div class="gm-term-name">Verdict</div>
+        <div class="gm-term-def">A plain-language assessment of graduation likelihood based on the gap between Avg Needed and the stock's current price. Only shown after 10+ trading days of data.</div>
+        <div class="gm-term-formula">Verdict thresholds: ON TRACK ≤ current price | TIGHT ≤ 1.1× | UNLIKELY ≤ 1.3× | IMPOSSIBLE > 1.3×</div>
+        <div class="gm-term-example">Example: Avg Needed is 43.6, current price is 50 → ON TRACK</div>
+      </div>
+
+      <div class="gm-term">
+        <div class="gm-term-name">Pace Needed / Day</div>
+        <div class="gm-term-def">The primary metric in early phase — how much each remaining trading day needs to average for graduation. Compared against current price to gauge feasibility.</div>
+        <div class="gm-term-formula">Pace = Shortfall ÷ Remaining Sessions</div>
+        <div class="gm-term-example">Example: Need Rp43.6/day, current price Rp50 → pace is achievable</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading overlay (for evaluate) -->
+  <div class="loading-overlay" id="loading">
+    <div class="loading-anim-wrap">
+      <div class="think-container">
+        <div class="think-ring"></div>
+        <div class="think-ring"></div>
+        <div class="think-ring"></div>
+        <div class="think-ring"></div>
+        <div class="think-ring"></div>
+        <div class="think-dot"></div>
+        <div class="think-orbit">
+          <div class="think-orbit-dot"></div>
+          <div class="think-orbit-dot"></div>
+          <div class="think-orbit-dot"></div>
+          <div class="think-orbit-dot"></div>
+        </div>
+      </div>
+    </div>
+    <div class="loading-text-wrap">
+      <div class="loading-text">System is calculating.</div>
+      <div class="loading-sub" id="loadingSub">Fetching and evaluating FCA data</div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let fcaData = [];
+    let sortKey = 'ticker';
+    let sortAsc = true;
+
+    // ── Load initial data ──
+    async function loadFcaList() {
+      $('fcaLoading').style.display = 'block';
+      $('fcaTable').style.display = 'none';
+      try {
+        const r = await fetch('/api/fca-list');
+        const json = await r.json();
+        if (!json.success) throw new Error(json.error || 'Failed');
+        fcaData = json.data;
+        $('fcaCount').textContent = fcaData.length;
+        renderTable();
+        $('fcaLoading').style.display = 'none';
+        $('fcaTable').style.display = '';
+      } catch (e) {
+        $('fcaLoading').innerHTML = `<div style="color:#EF4444">Failed to load: ${e.message}</div>`;
+      }
+    }
+
+    function renderTable() {
+      const sorted = [...fcaData].sort((a, b) => {
+        let va = a[sortKey], vb = b[sortKey];
+        if (typeof va === 'string') {
+          va = va.toLowerCase(); vb = (vb || '').toLowerCase();
+        } else {
+          va = va || 0; vb = vb || 0;
+        }
+        return sortAsc ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+      });
+      const tbody = $('fcaBody');
+      tbody.innerHTML = sorted.map(s => {
+        const changeClass = s.changePct > 0 ? 'change-pos' : s.changePct < 0 ? 'change-neg' : 'change-zero';
+        const changeStr = s.changePct >= 0 ? '+' + (s.changePct || 0).toFixed(2) + '%' : (s.changePct || 0).toFixed(2) + '%';
+        return `<tr onclick="evaluateTicker('${s.ticker}')">
+          <td class="ticker-cell">${s.ticker}</td>
+          <td class="name-cell">${s.name}</td>
+          <td class="price-cell">${s.price > 0 ? 'Rp' + s.price.toLocaleString() : '—'}</td>
+          <td class="price-cell ${changeClass}">${s.price > 0 ? changeStr : '—'}</td>
+        </tr>`;
+      }).join('');
+      // Update sorted indicator
+      document.querySelectorAll('.fca-table th').forEach(th => th.classList.remove('sorted'));
+      const sortedHeader = document.querySelector(`.fca-table th[data-key="${sortKey}"]`);
+      if (sortedHeader) sortedHeader.classList.add('sorted');
+    }
+
+    function sortTable(key) {
+      if (key === sortKey) sortAsc = !sortAsc;
+      else { sortKey = key; sortAsc = true; }
+      renderTable();
+    }
+
+    // ── Evaluate ──
+    function showLoading(text, sub) {
+      $('loading').classList.add('active');
+      $('loading').querySelector('.loading-text').textContent = text || 'System is calculating.';
+      $('loadingSub').innerHTML = sub || 'Fetching and evaluating FCA data';
+    }
+
+    function hideLoading() {
+      $('loading').classList.remove('active');
+    }
+
+    async function evaluateTicker(ticker) {
+      showLoading('System is calculating.', `Loading <strong>${ticker}</strong> data`);
+      try {
+        const r = await fetch(`/api/evaluate?ticker=${ticker}`);
+        const json = await r.json();
+        hideLoading();
+        if (json.notFCA) {
+          showEvalResult(`
+            <div class="message-box">
+              <div class="msg-icon">&#x26A0;&#xFE0F;</div>
+              <div class="msg-title">${json.error}</div>
+              <div class="msg-detail">This dashboard only tracks FCA graduation possibility.</div>
+            </div>`);
+          return;
+        }
+        if (json.suspended) {
+          showEvalResult(`
+            <div class="message-box">
+              <div class="msg-icon">&#x1F6AB;</div>
+              <div class="msg-title">Suspended</div>
+              <div class="msg-detail">${json.error}</div>
+            </div>`);
+          return;
+        }
+        if (!json.success) {
+          showEvalResult(`
+            <div class="message-box">
+              <div class="msg-icon">&#x274C;</div>
+              <div class="msg-title">Evaluation Failed</div>
+              <div class="msg-detail">${json.error}</div>
+            </div>`);
+          return;
+        }
+        renderDashboard(json.data, json.warning);
+      } catch (e) {
+        hideLoading();
+        showEvalResult(`
+          <div class="message-box">
+            <div class="msg-icon">&#x274C;</div>
+            <div class="msg-title">Network Error</div>
+            <div class="msg-detail">${e.message}</div>
+            <button class="dash-close" onclick="closeDashboard()" style="margin-top:14px">← Back to Home</button>
+          </div>`);
+      }
+    }
+
+    // ── Show evaluation, hide FCA list ──
+    function showEvalResult(html) {
+      $('fcaSection').style.display = 'none';
+      $('resultArea').innerHTML = html;
+    }
+
+    function doSearch() {
+      const val = $('searchInput').value.trim().toUpperCase();
+      if (!val) return;
+      evaluateTicker(val);
+    }
+
+    $('searchInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') doSearch();
+    });
+
+    // ── Render Dashboard ──
+    function renderDashboard(data, warning) {
+      const d = data;
+      const fmt = (n) => Number(n).toLocaleString('id-ID');
+      const fmtRp = (n) => 'Rp' + Math.round(n).toLocaleString('id-ID');
+
+      // Glossary definitions for inline tooltips
+      const glossary = {
+        'Current Price': 'The latest traded price of the stock on IDX.',
+        'Cumulative Close': 'Running sum of all daily closing prices since the FCA period started.',
+        'Progress': 'How far toward the Full Target, as a percentage. 100% = graduated.',
+        'Pace Needed/Day': 'Average closing price needed per remaining session to hit the Full Target.',
+      };
+
+      function glossaryTip(term) {
+        const def = glossary[term] || '';
+        if (!def) return '';
+        return `<span class="glossary-trigger" data-term="${term}">?<span class="glossary-popover"><div class="gp-title">${term}</div><div class="gp-def">${def}</div></span></span>`;
+      }
+
+      let verdictHtml = '';
+      if (d.isEarlyPhase) {
+        verdictHtml = `
+          <div class="early-notice">
+            <div class="icon">&#x1F7E1;</div>
+            <div>
+              <div class="title">Early Phase — ${d.elapsedTradingDays} trading days so far</div>
+              <div class="detail">Not enough data for verdict or scenarios. Track pace below. Re-evaluate after 10+ trading days.</div>
+            </div>
+          </div>`;
+      } else if (d.verdict) {
+        const v = d.verdict;
+        verdictHtml = `
+          <div class="verdict-card ${v.label}">
+            <div class="verdict-icon">${v.icon}</div>
+            <div class="verdict-headline">${v.headline}</div>
+            <div class="verdict-context">${v.contextLines.join('<br>')}</div>
+          </div>`;
+      }
+
+      let scenariosHtml = '';
+      if (d.scenarios && d.scenarios.length) {
+        scenariosHtml = '<div class="grid-section-title">Graduation Scenarios</div>' +
+          d.scenarios.map(function(s) {
+            return '<div class="scenario-card ' + (s.passes ? 'pass' : '') + '">' +
+              '<div class="scenario-info">' +
+              '<div class="scenario-label">' + s.label + '</div>' +
+              '<div class="scenario-desc">' + s.description + '</div>' +
+              '<div class="scenario-confidence">' + s.confidence + '</div>' +
+              '</div>' +
+              '<div class="scenario-result">' +
+              '<div class="scenario-points ' + (s.passes ? 'scenario-pass' : 'scenario-fail') + '">' + s.result + '</div>' +
+              '<div class="scenario-deficit">Avg Rp' + fmt(s.avgPrice) + '/day</div>' +
+              '</div>' +
+              '</div>';
+          }).join('');
+      }
+
+      let monthHtml = '';
+      if (d.monthRows && d.monthRows.length) {
+        var thRow = ['Month', 'Days', 'Points', 'Target', 'Δ'].map(function(h) { return '<th>' + h + '</th>'; }).join('');
+        monthHtml = '<div class="grid-section-title">Monthly Breakdown</div>' +
+          '<table class="month-table">' +
+          '<tr>' + thRow + '</tr>' +
+          d.monthRows.map(function(m) {
+            return '<tr>' +
+              '<td>' + m.label + '</td>' +
+              '<td>' + m.days + '</td>' +
+              '<td>' + fmt(m.points) + '</td>' +
+              '<td>' + fmt(m.target) + '</td>' +
+              '<td class="' + (m.delta >= 0 ? 'delta-pos' : 'delta-neg') + '">' + m.deltaStr + '</td>' +
+              '</tr>';
+          }).join('') +
+          '<tr class="total-row">' +
+          '<td>Total</td>' +
+          '<td>' + d.elapsedTradingDays + '</td>' +
+          '<td>' + fmt(d.cumulativeClose) + '</td>' +
+          '<td>' + fmt(d.elapsedTarget) + '</td>' +
+          '<td class="' + (d.totalDelta >= 0 ? 'delta-pos' : 'delta-neg') + '">' + d.totalDeltaStr + '</td>' +
+          '</tr>' +
+          '</table>';
+      }
+
+      let chartHtml = '';
+      if (d.weeklyBars && d.weeklyBars.length >= 2) {
+        var vals = d.weeklyBars.map(function(b) { return b.value; });
+        var maxV = Math.max.apply(null, vals);
+        var minV = Math.min.apply(null, vals);
+        var range = maxV - minV || 1;
+        var gridLines = [0,1,2,3].map(function(i) {
+          return '<div class="chart-grid-line" style="top:' + ((i/4)*100) + '%" data-label="' + Math.round(maxV - (range*i/4)) + '"></div>';
+        }).join('');
+        var bars = d.weeklyBars.map(function(b) {
+          return '<div class="chart-bar-wrap">' +
+            '<div class="chart-bar" style="height:' + (((b.value - minV) / range) * 100) + '%"></div>' +
+            '<div class="chart-bar-value">' + fmt(b.value) + '</div>' +
+            '<div class="chart-bar-label">' + b.label + '</div>' +
+            '</div>';
+        }).join('');
+        chartHtml = '<div class="chart-section">' +
+          '<div class="grid-section-title">Weekly Avg Close (Last 5)</div>' +
+          '<div class="chart-wrap">' +
+          '<div class="chart-grid">' + gridLines + '</div>' +
+          '<div class="chart-container">' + bars + '</div>' +
+          '</div>' +
+          '<div class="chart-avg-label">Threshold: Rp' + (d.fcaThreshold || 51) + '/day</div>' +
+          '</div>';
+      }
+
+      // Build daily rows separately to avoid nested template literal issues
+      const dailyLogs = d.dailyLog || [];
+      const dailyRows = dailyLogs.length > 0 ? dailyLogs.slice(-20).reverse().map((dd, i, arr) => {
+        const prevClose = i < arr.length - 1 ? arr[i + 1].close : null;
+        const delta = prevClose ? dd.close - prevClose : 0;
+        const deltaClass = delta > 0 ? 'delta-pos' : delta < 0 ? 'delta-neg' : '';
+        const deltaStr = delta > 0 ? '+' + fmtRp(delta) : delta < 0 ? fmtRp(delta) : '—';
+        return '<tr><td>' + dd.date + '</td><td>' + fmtRp(dd.close) + '</td><td>' + fmtRp(dd.open) + '</td><td class="' + deltaClass + '">' + deltaStr + '</td></tr>';
+      }).join('') : '';
+
+      const warningHtml = warning ? '<div class="criteria-warning">' + warning + '</div>' : '';
+
+      showEvalResult(
+        warningHtml +
+        '<div class="dashboard" style="display:block">' +
+        '<div class="dash-header">' +
+        '<div class="dash-company">' +
+        '<div class="dash-ticker">' + d.ticker + '</div>' +
+        '<div class="dash-name">' + d.companyName + '</div>' +
+        '<div class="dash-period">Period: ' + d.periodStart + ' → ' + d.periodEnd + ' (' + d.totalTradingDays + ' trading days)</div>' +
+        '</div>' +
+        '<button class="dash-close" onclick="closeDashboard()">← Back to Home</button>' +
+        '</div>' +
+        verdictHtml +
+        '<div class="summary-grid">' +
+        '<div class="summary-card">' +
+        '<div class="summary-label">Current Price ' + glossaryTip('Current Price') + '</div>' +
+        '<div class="summary-value white">' + fmtRp(d.currentPrice) + '</div>' +
+        '<div class="summary-sub">Last: ' + (d.lastDataDate || 'N/A') + '</div>' +
+        '</div>' +
+        '<div class="summary-card">' +
+        '<div class="summary-label">Cumulative Close ' + glossaryTip('Cumulative Close') + '</div>' +
+        '<div class="summary-value white">' + fmtRp(d.cumulativeClose) + '</div>' +
+        '<div class="summary-sub">of ' + fmtRp(d.targetTotal) + ' target</div>' +
+        '</div>' +
+        '<div class="summary-card">' +
+        '<div class="summary-label">Progress ' + glossaryTip('Progress') + '</div>' +
+        '<div class="summary-value ' + (d.progressPct >= 50 ? 'green' : d.progressPct >= 25 ? 'orange' : 'red') + '">' + d.progressPct + '%</div>' +
+        '<div class="summary-sub">' + d.elapsedTradingDays + '/' + d.totalTradingDays + ' days</div>' +
+        '</div>' +
+        '<div class="summary-card">' +
+        '<div class="summary-label">Pace Needed/Day ' + glossaryTip('Pace Needed/Day') + '</div>' +
+        '<div class="summary-value ' + (d.priceNeededPerDay <= d.currentPrice ? 'green' : 'orange') + '">' + fmtRp(d.priceNeededPerDay) + '</div>' +
+        '<div class="summary-sub">' + d.remainingTradingDays + ' days remaining</div>' +
+        '</div>' +
+        '</div>' +
+        '<div class="progress-section">' +
+        '<div class="progress-label">Progress to Graduation</div>' +
+        '<div class="progress-bar-bg">' +
+        '<div class="progress-bar-fill" style="width:' + Math.min(100, d.progressPct) + '%">' +
+        '<span class="progress-pct ' + (d.progressPct > 8 ? 'show' : '') + '">' + d.progressPct + '%</span>' +
+        '</div>' +
+        '</div>' +
+        '<div class="progress-caption">' +
+        '<span>' + fmtRp(d.cumulativeClose) + ' / ' + fmtRp(d.targetTotal) + '</span>' +
+        '<span class="progress-remaining">' + fmtRp(d.shortfall) + ' short</span>' +
+        '</div>' +
+        '</div>' +
+        '<div class="main-grid">' +
+        '<div>' + monthHtml + chartHtml + '</div>' +
+        '<div>' + scenariosHtml + '</div>' +
+        '</div>' +
+        '<div style="margin-top:24px">' +
+        '<div class="grid-section-title">Daily Closes (Last 20)</div>' +
+        '<table class="month-table">' +
+        '<tr><th>Date</th><th>Close</th><th>Open</th><th>Δ vs Prev</th></tr>' +
+        dailyRows +
+        '</table>' +
+        '</div>' +
+        '</div>'
+      );
+    }
+
+    function closeDashboard() {
+      $('resultArea').innerHTML = '';
+      $('fcaSection').style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ── Init ──
+    loadFcaList();
+
+    // ── Glossary Modal ──
+    $('headerGlossaryBtn').addEventListener('click', () => {
+      $('glossaryModal').classList.add('active');
+    });
+    $('glossaryClose').addEventListener('click', () => {
+      $('glossaryModal').classList.remove('active');
+    });
+    $('glossaryModal').addEventListener('click', (e) => {
+      if (e.target === $('glossaryModal')) $('glossaryModal').classList.remove('active');
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') $('glossaryModal').classList.remove('active');
+    });
+
+    // ── Glossary tooltips ──
+    document.addEventListener('click', (e) => {
+      const trigger = e.target.closest('.glossary-trigger');
+      if (!trigger) {
+        document.querySelectorAll('.glossary-trigger.active').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.glossary-popover.visible').forEach(p => p.classList.remove('visible'));
+        return;
+      }
+      e.stopPropagation();
+      const isActive = trigger.classList.contains('active');
+      document.querySelectorAll('.glossary-trigger.active').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.glossary-popover.visible').forEach(p => p.classList.remove('visible'));
+      if (!isActive) {
+        trigger.classList.add('active');
+        const popover = trigger.querySelector('.glossary-popover');
+        if (popover) popover.classList.add('visible');
+      }
+    });
+  </script>
+</body>
+</html>
